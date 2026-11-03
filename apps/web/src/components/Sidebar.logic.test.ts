@@ -1665,23 +1665,48 @@ describe("resolveSidebarScopedProjectKeys", () => {
   const serverApp = { environmentId: "server", projectId: "app" };
   const allProjectRefs = [laptopApp, laptopDocs, serverApp];
 
-  it("intersects the project and environment scopes", () => {
+  it("intersects the view, project and environment scopes", () => {
     const cases = [
-      { chosen: null, environments: null, expected: null },
-      { chosen: null, environments: ["laptop"], expected: ["laptop:app", "laptop:docs"] },
+      { chosen: null, environments: null, view: null, expected: null },
+      {
+        chosen: null,
+        environments: ["laptop"],
+        view: null,
+        expected: ["laptop:app", "laptop:docs"],
+      },
       {
         chosen: [laptopApp, serverApp],
         environments: null,
+        view: null,
         expected: ["laptop:app", "server:app"],
       },
-      { chosen: [laptopApp, serverApp], environments: ["server"], expected: ["server:app"] },
-      { chosen: [laptopDocs], environments: ["server"], expected: [] },
+      {
+        chosen: [laptopApp, serverApp],
+        environments: ["server"],
+        view: null,
+        expected: ["server:app"],
+      },
+      { chosen: [laptopDocs], environments: ["server"], view: null, expected: [] },
+      {
+        chosen: null,
+        environments: null,
+        view: ["laptop:docs", "server:app", "gone:project"],
+        expected: ["laptop:docs", "server:app"],
+      },
+      {
+        chosen: null,
+        environments: ["laptop"],
+        view: ["laptop:docs", "server:app"],
+        expected: ["laptop:docs"],
+      },
+      { chosen: [laptopApp], environments: null, view: ["server:app"], expected: [] },
     ];
-    for (const { chosen, environments, expected } of cases) {
+    for (const { chosen, environments, view, expected } of cases) {
       const keys = resolveSidebarScopedProjectKeys({
         chosenProjectRefs: chosen,
         allProjectRefs,
         environmentIds: environments === null ? null : new Set(environments),
+        viewProjectKeys: view === null ? null : new Set(view),
       });
       expect(keys === null ? null : [...keys]).toEqual(expected);
     }

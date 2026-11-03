@@ -175,6 +175,13 @@ import { isScratchProject } from "@t3tools/client-runtime/state/projects";
 import { cn } from "~/lib/utils";
 import { ProjectEnvironmentBadge } from "./ProjectEnvironmentBadge";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
+import { SidebarViewPicker } from "./sidebar/SidebarViewPicker";
+import {
+  setActiveSidebarViewId,
+  sidebarViewProjectKey,
+  useActiveSidebarViewId,
+  useSidebarViews,
+} from "../sidebarViews";
 import {
   buildDraftActionMenuItems,
   buildThreadActionMenuItems,
@@ -1143,6 +1150,20 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const hasMemberInChosenEnvironments = (project: SidebarProjectSnapshot) =>
     chosenEnvironmentIdSet === null ||
     project.memberProjectRefs.some((ref) => chosenEnvironmentIdSet.has(ref.environmentId));
+  const [sidebarViews] = useSidebarViews();
+  const persistedActiveViewId = useActiveSidebarViewId();
+  // A deleted view reads as no view.
+  const chosenView = sidebarViews.find((view) => view.id === persistedActiveViewId) ?? null;
+  const chosenViewProjectKeys = chosenView === null ? null : new Set(chosenView.projectKeys);
+  const hasMemberInChosenView = (project: SidebarProjectSnapshot) =>
+    chosenViewProjectKeys === null ||
+    project.memberProjectRefs.some((ref) =>
+      chosenViewProjectKeys.has(sidebarViewProjectKey(ref.environmentId, ref.projectId)),
+    );
+  const selectView = (viewId: string | null) => {
+    clearSelection();
+    setActiveSidebarViewId(viewId);
+  };
   // A scope whose project is gone reads as all projects once every snapshot has
   // loaded. The stored keys are left alone, so the scope returns with its project.
   // An archived project's scope reads as all projects, matching the menu.
@@ -1159,7 +1180,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   // A chosen project with no copy in the scoped environments reads as unchosen.
   const chosenProjectGroups = scopeGroups.filter(
     (project) =>
-      chosenProjectScopeKeys.includes(project.projectKey) && hasMemberInChosenEnvironments(project),
+      chosenProjectScopeKeys.includes(project.projectKey) &&
+      hasMemberInChosenEnvironments(project) &&
+      hasMemberInChosenView(project),
   );
   const chosenScopeProjectKeys = resolveSidebarScopedProjectKeys({
     chosenProjectRefs:
@@ -1171,6 +1194,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       projectId: project.id,
     })),
     environmentIds: chosenEnvironmentIdSet,
+    viewProjectKeys: chosenViewProjectKeys,
   });
   const threads = useQuietThreadShells();
   const routeRowThreadKey =
@@ -1203,10 +1227,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const projectScopeKeys = revealWidensScope ? [] : chosenProjectScopeKeys;
   const environmentScopeIds = revealWidensScope ? [] : chosenEnvironmentIds;
   const scopedEnvironmentIdSet = revealWidensScope ? null : chosenEnvironmentIdSet;
+  const scopedView = revealWidensScope ? null : chosenView;
   const projectScopeKey =
-    projectScopeKeys.length === 0 && environmentScopeIds.length === 0
+    projectScopeKeys.length === 0 && environmentScopeIds.length === 0 && scopedView === null
       ? null
-      : [...environmentScopeIds.map((id) => `env:${id}`), ...projectScopeKeys].join("\n");
+      : [
+          ...(scopedView === null ? [] : [`view:${scopedView.id}`]),
+          ...environmentScopeIds.map((id) => `env:${id}`),
+          ...projectScopeKeys,
+        ].join("\n");
   const toggleProjectScopeKey = (key: string) =>
     setProjectScopeKeys(
       projectScopeKeys.includes(key)
@@ -1229,6 +1258,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     clearSelection();
     setPersistedProjectScopeKeys([]);
     setPersistedEnvironmentScopeIds([]);
+    setActiveSidebarViewId(null);
   }, [
     clearSelection,
     revealWidensScope,
@@ -1261,10 +1291,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       ? null
       : (projectScopeItems.find((item) => item.value === (projectScopeKeys[0] ?? "all")) ??
         projectScopeItems[0]!);
-  // Under an environment scope, the menu lists only projects that live there.
+  // Under an environment scope or a view, the menu lists only the projects it covers.
   const environmentScopedItems = projectScopeItems.filter((item) => {
     const project = projectGroupByScopeKey.get(item.value);
-    return !project || hasMemberInChosenEnvironments(project);
+    return !project || (hasMemberInChosenEnvironments(project) && hasMemberInChosenView(project));
   });
   const hasEnvironmentScopeItems = projectScopeItems.some((item) => item.environmentId !== null);
   const scopedEnvironmentLabels = environmentScopeIds.map(
@@ -1277,21 +1307,22 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       projectScopeFilter.contains(item, query, (candidate) => candidate.label),
   });
   const scopedProjectGroups = revealWidensScope ? [] : chosenProjectGroups;
-  const scopedProjectRefs = scopedProjectGroups
-    .flatMap((project) => project.memberProjectRefs)
-    .filter(
-      (projectRef) =>
-        scopedEnvironmentIdSet === null || scopedEnvironmentIdSet.has(projectRef.environmentId),
-    );
   const scopedProjectKeys = revealWidensScope ? null : chosenScopeProjectKeys;
+  // Environment-only scopes search whole environments; project and view scopes name their projects.
+  const searchProjectIds =
+    scopedProjectKeys === null || (scopedProjectGroups.length === 0 && scopedView === null)
+      ? null
+      : projects
+          .filter((project) =>
+            scopedProjectKeys.has(sidebarViewProjectKey(project.environmentId, project.id)),
+          )
+          .map((project) => project.id);
   const threadSearch = useThreadSearch(
     scopedEnvironmentIdSet === null
       ? connectedEnvironmentIds
       : connectedEnvironmentIds.filter((id) => scopedEnvironmentIdSet.has(id)),
     threadSearchQuery,
-    scopedProjectGroups.length === 0
-      ? {}
-      : { projectIds: scopedProjectRefs.map((projectRef) => projectRef.projectId) },
+    searchProjectIds === null ? {} : { projectIds: searchProjectIds },
   );
   const routeDraftIdForRows = routeTarget?.kind === "draft" ? routeTarget.draftId : null;
   const visibleDraftSessionCount = useComposerDraftStore((store) => {
@@ -1445,9 +1476,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         ? // An archived project keeps a folder for its active threads, below the rest.
           [...scopeGroups, ...projectGroups.filter((project) => project.archived)].filter(
             (project) =>
-              scopedEnvironmentIdSet === null ||
-              project.memberProjectRefs.some((ref) =>
-                scopedEnvironmentIdSet.has(ref.environmentId),
+              project.memberProjectRefs.some(
+                (ref) =>
+                  scopedProjectKeys === null ||
+                  scopedProjectKeys.has(sidebarViewProjectKey(ref.environmentId, ref.projectId)),
               ),
           )
         : scopedProjectGroups
@@ -3087,6 +3119,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
               hasProjects={projectGroups.length > 0}
+              views={
+                <SidebarViewPicker
+                  views={sidebarViews}
+                  activeView={scopedView}
+                  onSelect={selectView}
+                  onEditViews={() => {
+                    void router.navigate({ to: "/settings/views" });
+                  }}
+                />
+              }
               projectScope={
                 <Combobox
                   items={projectScopeItems}
@@ -3783,6 +3825,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 "No threads in these projects yet"
               ) : scopedProjectGroups[0] ? (
                 `No threads in ${scopedProjectGroups[0].displayName} yet`
+              ) : scopedView !== null ? (
+                `No threads in ${scopedView.name || "this view"} yet`
               ) : scopedEnvironmentLabels.length > 0 ? (
                 `No threads on ${scopedEnvironmentLabels.join(", ")} yet`
               ) : (
