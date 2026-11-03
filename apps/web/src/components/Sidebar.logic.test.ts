@@ -6,6 +6,7 @@ import { describe, expect, it } from "vite-plus/test";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import {
+  resolveSidebarScopedProjectKeys,
   shouldCreateNewThreadInCurrentProject,
   deleteSelectedThreadEntries,
   getFallbackThreadIdAfterDelete,
@@ -1655,5 +1656,34 @@ describe("shouldCreateNewThreadInCurrentProject", () => {
     expect(shouldCreateNewThreadInCurrentProject(false, 1, 3)).toBe(true);
     expect(shouldCreateNewThreadInCurrentProject(false, 0, 0)).toBe(true);
     expect(shouldCreateNewThreadInCurrentProject(true, 2, 2)).toBe(true);
+  });
+});
+
+describe("resolveSidebarScopedProjectKeys", () => {
+  const laptopApp = { environmentId: "laptop", projectId: "app" };
+  const laptopDocs = { environmentId: "laptop", projectId: "docs" };
+  const serverApp = { environmentId: "server", projectId: "app" };
+  const allProjectRefs = [laptopApp, laptopDocs, serverApp];
+
+  it("intersects the project and environment scopes", () => {
+    const cases = [
+      { chosen: null, environments: null, expected: null },
+      { chosen: null, environments: ["laptop"], expected: ["laptop:app", "laptop:docs"] },
+      {
+        chosen: [laptopApp, serverApp],
+        environments: null,
+        expected: ["laptop:app", "server:app"],
+      },
+      { chosen: [laptopApp, serverApp], environments: ["server"], expected: ["server:app"] },
+      { chosen: [laptopDocs], environments: ["server"], expected: [] },
+    ];
+    for (const { chosen, environments, expected } of cases) {
+      const keys = resolveSidebarScopedProjectKeys({
+        chosenProjectRefs: chosen,
+        allProjectRefs,
+        environmentIds: environments === null ? null : new Set(environments),
+      });
+      expect(keys === null ? null : [...keys]).toEqual(expected);
+    }
   });
 });
