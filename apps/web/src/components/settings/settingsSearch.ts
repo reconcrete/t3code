@@ -26,6 +26,7 @@ export type SettingsPath =
   | "/settings/snap-shot"
   | "/settings/providers"
   | "/settings/threads"
+  | "/settings/views"
   | "/settings/browser"
   | "/settings/devices"
   | "/settings/scheduled-tasks"
@@ -96,6 +97,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/snap-shot": "SnapShots",
   "/settings/providers": "Providers",
   "/settings/threads": "Threads",
+  "/settings/views": "Views",
   "/settings/browser": "Browser",
   "/settings/devices": "Devices",
   "/settings/scheduled-tasks": "Scheduled tasks",
@@ -131,6 +133,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     paths: [
       "/settings/providers",
       "/settings/threads",
+      "/settings/views",
       "/settings/browser",
       "/settings/devices",
       "/settings/scheduled-tasks",
@@ -410,6 +413,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Project grouping",
     to: "/settings/general",
     searchTerms: ["combine matching repositories environments sidebar"],
+  },
+  {
+    id: "sidebar-views",
+    title: "Views",
+    to: "/settings/views",
+    searchTerms: ["sidebar views group projects environments filter"],
   },
   {
     id: "project-order",
@@ -1190,6 +1199,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/keybindings": null,
   "/settings/providers": null,
   "/settings/threads": null,
+  "/settings/views": null,
   "/settings/browser": null,
   "/settings/devices": null,
   "/settings/source-control": "environment-defaults",

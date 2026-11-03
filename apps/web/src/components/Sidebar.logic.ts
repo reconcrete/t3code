@@ -1110,20 +1110,24 @@ interface SidebarScopeProjectRef {
 }
 
 /**
- * The project and environment scopes intersect. `null` on either axis means
+ * The view, project and environment scopes intersect. `null` on any axis means
  * unscoped there; `null` overall means every project is listed.
  */
 export function resolveSidebarScopedProjectKeys(input: {
   readonly chosenProjectRefs: ReadonlyArray<SidebarScopeProjectRef> | null;
   readonly allProjectRefs: ReadonlyArray<SidebarScopeProjectRef>;
   readonly environmentIds: ReadonlySet<string> | null;
+  readonly viewProjectKeys: ReadonlySet<string> | null;
 }): ReadonlySet<string> | null {
-  const { chosenProjectRefs, allProjectRefs, environmentIds } = input;
-  if (chosenProjectRefs === null && environmentIds === null) return null;
+  const { chosenProjectRefs, allProjectRefs, environmentIds, viewProjectKeys } = input;
+  if (chosenProjectRefs === null && environmentIds === null && viewProjectKeys === null) {
+    return null;
+  }
   return new Set(
     (chosenProjectRefs ?? allProjectRefs)
       .filter((ref) => environmentIds === null || environmentIds.has(ref.environmentId))
-      .map((ref) => `${ref.environmentId}:${ref.projectId}`),
+      .map((ref) => `${ref.environmentId}:${ref.projectId}`)
+      .filter((key) => viewProjectKeys === null || viewProjectKeys.has(key)),
   );
 }
 
