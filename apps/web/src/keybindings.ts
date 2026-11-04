@@ -5,6 +5,8 @@ import {
   type ResolvedKeybindingRule,
   MODEL_PICKER_JUMP_KEYBINDING_COMMANDS,
   type ResolvedKeybindingsConfig,
+  SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS,
+  type SidebarViewJumpKeybindingCommand,
   THREAD_JUMP_KEYBINDING_COMMANDS,
   type ModelPickerJumpKeybindingCommand,
   type ThreadJumpKeybindingCommand,
@@ -265,6 +267,13 @@ export function shortcutLabelForCommand(
 
 export function threadJumpCommandForIndex(index: number): ThreadJumpKeybindingCommand | null {
   return THREAD_JUMP_KEYBINDING_COMMANDS[index] ?? null;
+}
+
+export function sidebarViewJumpIndexFromCommand(command: string): number | null {
+  const index = SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS.indexOf(
+    command as SidebarViewJumpKeybindingCommand,
+  );
+  return index === -1 ? null : index;
 }
 
 export function threadJumpIndexFromCommand(command: string): number | null {

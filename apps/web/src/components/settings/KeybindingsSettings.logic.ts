@@ -383,6 +383,8 @@ export function commandLabel(command: KeybindingCommand): string {
   const usagePeriod = WINDOW_OPTIONS.find((option) => option.command === command);
   if (usagePeriod) return `Usage: Period: ${usagePeriod.label}`;
   if (command === "view.reopenClosed") return "Reopen Closed Tab";
+  const sidebarViewJump = /^sidebarView\.jump\.(\d)$/.exec(command);
+  if (sidebarViewJump) return `Sidebar: Open View ${sidebarViewJump[1]}`;
   if (command === "preview.focusUrl") return "Preview: Focus URL";
   const raw = String(command);
   if (raw.startsWith("script.") && raw.endsWith(".run")) {

@@ -54,6 +54,21 @@ const MODEL_PICKER_KEYBINDING_COMMANDS = [
   ...MODEL_PICKER_JUMP_KEYBINDING_COMMANDS,
 ] as const;
 
+/** Opens the Nth sidebar view, in the order the views picker lists them. */
+export const SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS = [
+  "sidebarView.jump.1",
+  "sidebarView.jump.2",
+  "sidebarView.jump.3",
+  "sidebarView.jump.4",
+  "sidebarView.jump.5",
+  "sidebarView.jump.6",
+  "sidebarView.jump.7",
+  "sidebarView.jump.8",
+  "sidebarView.jump.9",
+] as const;
+export type SidebarViewJumpKeybindingCommand =
+  (typeof SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS)[number];
+
 export const STATIC_KEYBINDING_COMMANDS = [
   "workspace.focusNext",
   "workspace.focusPrevious",
@@ -114,6 +129,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "usage.period.quarter",
   ...MODEL_PICKER_KEYBINDING_COMMANDS,
   ...THREAD_KEYBINDING_COMMANDS,
+  ...SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS,
 ] as const;
 
 export const SCRIPT_RUN_COMMAND_PATTERN = Schema.TemplateLiteral([
