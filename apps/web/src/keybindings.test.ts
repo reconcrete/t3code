@@ -920,3 +920,23 @@ describe("Usage shortcuts", () => {
     );
   });
 });
+
+describe("sidebar view shortcuts", () => {
+  it("opens the Nth view with cmd+option+N on macOS, where option changes the typed key", () => {
+    const input = event({ key: "™", code: "Digit2", metaKey: true, altKey: true });
+    const command = resolveShortcutCommand(input, DEFAULT_RESOLVED_KEYBINDINGS, {
+      platform: "MacIntel",
+      context: { isDesktop: true },
+    });
+    assert.strictEqual(command, "sidebarView.jump.2");
+  });
+
+  it("keeps cmd+N for thread jumps", () => {
+    const input = event({ key: "2", code: "Digit2", metaKey: true });
+    const command = resolveShortcutCommand(input, DEFAULT_RESOLVED_KEYBINDINGS, {
+      platform: "MacIntel",
+      context: { isDesktop: true },
+    });
+    assert.strictEqual(command, "thread.jump.2");
+  });
+});

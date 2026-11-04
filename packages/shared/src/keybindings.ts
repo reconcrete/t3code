@@ -7,6 +7,7 @@ import {
   MODEL_PICKER_JUMP_KEYBINDING_COMMANDS,
   type ResolvedKeybindingRule,
   type ResolvedKeybindingsConfig,
+  SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS,
   THREAD_JUMP_KEYBINDING_COMMANDS,
 } from "@t3tools/contracts";
 
@@ -219,6 +220,10 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+s", command: "thread.settle", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },
   { key: "mod+z", command: "thread.undo", when: "!terminalFocus && !editableFocus" },
+  ...SIDEBAR_VIEW_JUMP_KEYBINDING_COMMANDS.map((command, index) => ({
+    key: `mod+alt+${index + 1}`,
+    command,
+  })),
   ...THREAD_JUMP_KEYBINDING_COMMANDS.map((command, index) => ({
     key: `mod+${index + 1}`,
     command,
