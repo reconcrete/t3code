@@ -96,6 +96,7 @@ import {
   shortcutLabelForCommand,
   shouldShowThreadJumpHintsForModifiers,
   threadJumpCommandForIndex,
+  sidebarViewJumpIndexFromCommand,
   threadJumpIndexFromCommand,
   threadTraversalDirectionFromCommand,
 } from "../keybindings";
@@ -3046,6 +3047,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         );
         return;
       }
+      const viewJumpIndex = sidebarViewJumpIndexFromCommand(command ?? "");
+      if (viewJumpIndex !== null) {
+        const view = sidebarViews[viewJumpIndex];
+        if (!view) return;
+        event.preventDefault();
+        event.stopPropagation();
+        // Pressing the active view's shortcut again goes back to all threads.
+        selectView(view.id === chosenView?.id ? null : view.id);
+        return;
+      }
       const jumpIndex = threadJumpIndexFromCommand(command ?? "");
       if (jumpIndex === null) return;
       navigateToThreadKey(orderedThreadKeys[jumpIndex] ?? null);
@@ -3053,11 +3064,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     window.addEventListener("keydown", onWindowKeyDown);
     return () => window.removeEventListener("keydown", onWindowKeyDown);
   }, [
+    chosenView?.id,
     keybindings,
     navigateToThread,
     orderedThreadKeys,
     routeRowThreadKey,
     routeTerminalOpen,
+    selectView,
+    sidebarViews,
     threadByKey,
   ]);
 
