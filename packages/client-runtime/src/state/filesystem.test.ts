@@ -4,6 +4,8 @@ import { AuthFilesystemReadScope, AuthOrchestrationReadScope } from "@t3tools/co
 import {
   createBrowseNavigationCoordinator,
   filterFilesystemBrowseEntries,
+  getComposerPathBrowse,
+  getComposerPathBrowseEntries,
   getFilesystemBrowsePath,
   getFilesystemBrowseTabCompletion,
   resolveFilesystemReadAccess,
@@ -129,6 +131,41 @@ describe("filesystem browse model", () => {
       { name: "A\u030A", fullPath: "/home/me/A\u030A" },
     ];
     expect(filterFilesystemBrowseEntries(angstroms, "\u00C5").exactEntry).toBeNull();
+  });
+});
+
+describe("composer path browse", () => {
+  it.each([
+    ["~/O/", { directoryPath: "~/O/", filterQuery: "" }],
+    ["~/O/Du", { directoryPath: "~/O/", filterQuery: "Du" }],
+    ["/Users/me/", { directoryPath: "/Users/me/", filterQuery: "" }],
+    ["../", { directoryPath: "../", filterQuery: "" }],
+    ["../sib", { directoryPath: "../", filterQuery: "sib" }],
+    ["..\\sib", { directoryPath: "..\\", filterQuery: "sib" }],
+    ["src/comp", null],
+    ["./src/", null],
+    ["~", null],
+    ["..", null],
+    ["Button", null],
+  ])("browses %j as %j", (query, expected) => {
+    expect(getComposerPathBrowse(query)).toEqual(expected);
+  });
+
+  it("lists folders before files and hides dotfiles unless typed", () => {
+    const entries = [
+      { name: ".hidden", fullPath: "/o/.hidden", kind: "directory" as const },
+      { name: "CLAUDE.md", fullPath: "/o/CLAUDE.md", kind: "file" as const },
+      { name: "Dust", fullPath: "/o/Dust", kind: "directory" as const },
+      { name: "Forge", fullPath: "/o/Forge" },
+    ];
+    expect(getComposerPathBrowseEntries(entries, "").map((entry) => entry.name)).toEqual([
+      "Dust",
+      "Forge",
+      "CLAUDE.md",
+    ]);
+    expect(getComposerPathBrowseEntries(entries, ".hid").map((entry) => entry.name)).toEqual([
+      ".hidden",
+    ]);
   });
 });
 

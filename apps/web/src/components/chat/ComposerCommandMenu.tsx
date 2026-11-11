@@ -44,6 +44,8 @@ export type ComposerCommandItem =
       path: string;
       pathKind: ProjectEntry["kind"];
       searchTarget: ComposerPathSearchTarget;
+      /** The `@` query Tab writes to open this folder, for one-level browse results. */
+      openQuery?: string;
       label: string;
       description: string;
     }

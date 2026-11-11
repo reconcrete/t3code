@@ -130,6 +130,23 @@ export function filterFilesystemBrowseEntries(
   return { visibleEntries, exactEntry };
 }
 
+/** An `@` path from home, root or a parent folder points outside the project, so it lists one folder. */
+export function getComposerPathBrowse(query: string) {
+  if (!/^(?:~\/|\/|\.\.[\\/])/.test(query)) return null;
+  const directoryPath = getBrowseDirectoryPath(query);
+  return { directoryPath, filterQuery: query.slice(directoryPath.length) };
+}
+
+/** Folders first, then files; servers that predate `kind` list folders only. */
+export function getComposerPathBrowseEntries(
+  entries: ReadonlyArray<FilesystemBrowseEntry>,
+  filterQuery: string,
+) {
+  return [...filterFilesystemBrowseEntries(entries, filterQuery).visibleEntries].sort(
+    (left, right) => Number(left.kind === "file") - Number(right.kind === "file"),
+  );
+}
+
 /** Shell-style Tab: a single match enters the directory, several extend to their common prefix. */
 export function getFilesystemBrowseTabCompletion(
   visibleEntries: ReadonlyArray<FilesystemBrowseEntry>,

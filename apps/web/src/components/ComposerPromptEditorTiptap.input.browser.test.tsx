@@ -502,6 +502,22 @@ it.each(["x\r\n\r\ny", "x\r\ry"])(
   },
 );
 
+it.each([
+  { pasted: "@~/O/Dust/", value: "@~/O/Dust/" },
+  { pasted: "see @../sibling", value: "see @../sibling" },
+  { pasted: "@README.md", value: "@README.md " },
+])("leaves a pasted path outside the project open as a query: $pasted", async (row) => {
+  await using screen = await mountEditor("");
+  const { editor } = screen;
+  await act(async () => {
+    editor.commands.focus("end");
+    const clipboardData = new DataTransfer();
+    clipboardData.setData("text/plain", row.pasted);
+    editor.view.dom.dispatchEvent(new ClipboardEvent("paste", { clipboardData, cancelable: true }));
+  });
+  expect(serializeEditorDoc(editor.state.doc).value).toBe(row.value);
+});
+
 it("keeps the caret inside unknown dollar text across rich and plain remounts", async () => {
   const value = "echo $HOME now";
   await using screen = await mountEditor(value);
