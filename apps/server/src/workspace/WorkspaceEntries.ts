@@ -233,23 +233,46 @@ export const make = Effect.gen(function* () {
 
       const showHidden = endsWithSeparator || prefix.startsWith(".");
       const lowerPrefix = prefix.toLowerCase();
-      const entries: Array<{ readonly name: string; readonly fullPath: string }> = [];
-      for (const dirent of dirents) {
-        if (
-          dirent.isDirectory() &&
+      const candidates = dirents.filter(
+        (dirent) =>
           dirent.name.toLowerCase().startsWith(lowerPrefix) &&
-          (showHidden || !dirent.name.startsWith("."))
-        ) {
-          entries.push({
-            name: dirent.name,
-            fullPath: path.join(parentPath, dirent.name),
-          });
-        }
+          (showHidden || !dirent.name.startsWith(".")),
+      );
+      if (input.includeFiles !== true) {
+        return {
+          parentPath,
+          entries: candidates
+            .filter((dirent) => dirent.isDirectory())
+            .map((dirent) => ({ name: dirent.name, fullPath: path.join(parentPath, dirent.name) }))
+            .toSorted((left, right) => left.name.localeCompare(right.name)),
+        };
       }
 
+      const kinds = yield* Effect.forEach(
+        candidates,
+        (dirent) => {
+          if (dirent.isDirectory()) return Effect.succeed("directory" as const);
+          if (dirent.isFile()) return Effect.succeed("file" as const);
+          if (!dirent.isSymbolicLink()) return Effect.undefined;
+          return Effect.promise(() =>
+            NodeFSP.stat(path.join(parentPath, dirent.name)).then(
+              (stat) => (stat.isDirectory() ? "directory" : stat.isFile() ? "file" : undefined),
+              () => undefined,
+            ),
+          );
+        },
+        { concurrency: SYMLINK_RESOLVE_BATCH_SIZE },
+      );
       return {
         parentPath,
-        entries: entries.toSorted((left, right) => left.name.localeCompare(right.name)),
+        entries: candidates
+          .flatMap((dirent, index) => {
+            const kind = kinds[index];
+            return kind === undefined
+              ? []
+              : [{ name: dirent.name, fullPath: path.join(parentPath, dirent.name), kind }];
+          })
+          .toSorted((left, right) => left.name.localeCompare(right.name)),
       };
     },
   );

@@ -64,3 +64,28 @@ Commit: `feat(web): shortcuts for sidebar views` (depends on Sidebar views)
 - Compatibility: a `keybindings.json` that rebinds these commands may fail to load in
   official builds. Defaults alone are fine.
 - Check: `keybindings.test.ts`.
+
+## `@` mentions outside the project
+
+Commit: `feat(web): browse @ mentions outside the project`
+
+- An `@` query starting with `~/`, `/` or `../` lists one folder (folders first, then files)
+  instead of searching the project recursively. Anything else, including `./`, keeps the
+  upstream recursive search.
+- Enter or a click inserts a mention with the absolute path. Tab on a folder rewrites the
+  query to `@<folder>/` and lists it; Tab on a file inserts it like Enter.
+- Pasting text that ends in such an `@path` (e.g. from a snippet tool) leaves it as an open
+  query instead of a chip, so the menu lists that folder. Hook: the trailing-space check in
+  the paste handler of `ComposerPromptEditorTiptap.tsx`.
+- Uses upstream's `filesystem.browse` with two optional fields: `includeFiles` (input) and
+  `kind` (entry). Official servers drop `includeFiles` and list folders only; official
+  clients drop `kind`. No persisted state.
+- Logic is in `getComposerPathBrowse`/`getComposerPathBrowseEntries`
+  (`client-runtime/state/filesystem.ts`). Conflicts land in the hooks:
+  `useComposerMenuItems.ts` (the path branch), `onSelectComposerItem` in `ChatComposer.tsx`
+  (the `key` argument), `composerCommandKey.ts`, and `WorkspaceEntries.browse`.
+- Web only; mobile keeps the upstream search.
+- Check: `client-runtime/src/state/filesystem.test.ts`, the browse tests in
+  `WorkspaceEntries.test.ts`, and the pasted-path rows in
+  `ComposerPromptEditorTiptap.input.browser.test.tsx`, then type `@~/`, Tab into a folder,
+  and Enter on a file.

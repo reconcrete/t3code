@@ -816,6 +816,34 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
       }),
     );
 
+    it.effect("lists files and resolved symlinks with their kind only when asked", () =>
+      Effect.gen(function* () {
+        if ((yield* HostProcess.Platform) === "win32") return;
+        const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const cwd = yield* makeTempDir({ prefix: "t3code-workspace-browse-files-" });
+        yield* writeTextFile(cwd, "notes.md", "");
+        yield* writeTextFile(cwd, "Dust/a.md", "");
+        yield* fileSystem.symlink("Dust", path.join(cwd, "dust-link"));
+        yield* fileSystem.symlink("absent", path.join(cwd, "broken-link"));
+        const cwdWithSeparator = yield* appendSeparator(cwd);
+
+        const directoriesOnly = yield* workspaceEntries.browse({ partialPath: cwdWithSeparator });
+        const withFiles = yield* workspaceEntries.browse({
+          partialPath: cwdWithSeparator,
+          includeFiles: true,
+        });
+
+        expect(directoriesOnly.entries.map((entry) => entry.name)).toEqual(["Dust"]);
+        expect(withFiles.entries).toEqual([
+          { name: "Dust", fullPath: path.join(cwd, "Dust"), kind: "directory" },
+          { name: "dust-link", fullPath: path.join(cwd, "dust-link"), kind: "directory" },
+          { name: "notes.md", fullPath: path.join(cwd, "notes.md"), kind: "file" },
+        ]);
+      }),
+    );
+
     it.effect("marks only a missing directory as missing when browsing fails", () =>
       Effect.gen(function* () {
         const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;

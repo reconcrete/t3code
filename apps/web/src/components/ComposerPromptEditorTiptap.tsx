@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { documentChipKindForFileName } from "~/pierre-icons";
 import { isProviderSkillUserInvocable } from "@t3tools/client-runtime/providerSkills";
+import { getComposerPathBrowse } from "@t3tools/client-runtime/state/filesystem";
 import { formatProviderSkillDisplayName } from "@t3tools/shared/inlineSkills";
 import {
   Extension,
@@ -1392,7 +1393,12 @@ function ComposerPromptEditorTiptapInner(
             (token?.type === "skill" && skillLabelFor(token.value) !== null) ||
             (token?.type === "model" && isKnownModel(token.instanceId, token.model));
           const lastToken = tokens.at(-1);
-          if (isChip(lastToken) && lastToken?.end === text.length) {
+          // A pasted `@~/dir` stays an open query, so the menu can browse further into it.
+          const opensPathBrowse =
+            lastToken?.type === "mention" &&
+            lastToken.source === `@${lastToken.value}` &&
+            getComposerPathBrowse(lastToken.value) !== null;
+          if (isChip(lastToken) && lastToken?.end === text.length && !opensPathBrowse) {
             text += " ";
           }
           if (isChip(tokens[0]) && tokens[0]?.start === 0) {

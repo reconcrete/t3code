@@ -1838,7 +1838,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   };
 
   const { onUsageLimitsCommand } = props;
-  const onSelectComposerItem = (item: ComposerCommandItem) => {
+  const onSelectComposerItem = (item: ComposerCommandItem, key?: "Tab" | "Enter") => {
     if (composerSelectLockRef.current) return;
     composerSelectLockRef.current = true;
     window.requestAnimationFrame(() => {
@@ -1848,7 +1848,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     if (!trigger) return;
     if (item.type === "path") {
       if (!isPathSuggestionCurrent(item.searchTarget, trigger, environmentId, gitCwd)) return;
-      const replacement = `${serializeComposerFileLink(item.path)} `;
+      const replacement =
+        key === "Tab" && item.openQuery !== undefined
+          ? `@${item.openQuery}`
+          : `${serializeComposerFileLink(item.path)} `;
       const replacementRangeEnd = extendReplacementRangeForTrailingSpace(
         snapshot.value,
         trigger.rangeEnd,

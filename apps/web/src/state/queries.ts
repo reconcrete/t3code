@@ -17,6 +17,7 @@ import { messageSearchTokens } from "@t3tools/shared/paletteSearch";
 import { type VcsRefTarget } from "@t3tools/client-runtime/state/vcs";
 import type {
   EnvironmentId,
+  FilesystemBrowseEntry,
   OrchestrationV2GetTurnItemResult,
   ProjectContentMatch,
   ProjectEntry,
@@ -31,7 +32,7 @@ import { AsyncResult, Atom } from "effect/reactivity";
 import { useEffect, useState } from "react";
 
 import { appAtomRegistry } from "../rpc/atomRegistry";
-import { useFilesystemReadAccess } from "./filesystem";
+import { filesystemEnvironment, useFilesystemReadAccess } from "./filesystem";
 import { orchestrationEnvironment } from "./orchestration";
 import { olderSettledThreads, threadFamilies } from "./threads";
 import { isPaginatedBranchesNextPagePending } from "./paginatedBranches";
@@ -47,6 +48,7 @@ const THREAD_SEARCH_DEBOUNCE_MS = 120;
 const VCS_REF_LIST_LIMIT = 100;
 const EMPTY_REFS: ReadonlyArray<VcsRef> = [];
 const EMPTY_PROJECT_ENTRIES: ReadonlyArray<ProjectEntry> = [];
+const EMPTY_BROWSE_ENTRIES: ReadonlyArray<FilesystemBrowseEntry> = [];
 const EMPTY_CONTENT_MATCHES: ReadonlyArray<ProjectContentMatch> = [];
 const INITIAL_BRANCH_CURSORS = [undefined] as const;
 const EMPTY_THREAD_SEARCH_MATCHES: ReadonlyArray<EnvironmentThreadSearchMatch> = Object.freeze([]);
@@ -345,6 +347,32 @@ export function useProjectPathSearch(
 
 export function useComposerPathSearch(target: ComposerPathSearchTarget) {
   return useProjectPathSearch(target, COMPOSER_PATH_SEARCH_LIMIT);
+}
+
+/** Lists one folder for an `@` path outside the project; each folder is one cached request. */
+export function useComposerPathBrowse(target: {
+  readonly environmentId: EnvironmentId | null;
+  readonly cwd: string | null;
+  readonly directoryPath: string | null;
+}) {
+  const fileAccess = useFilesystemReadAccess(target.environmentId);
+  const hasTarget = target.environmentId !== null && target.directoryPath !== null;
+  const result = useEnvironmentQuery(
+    fileAccess.canReadFiles && target.environmentId !== null && target.directoryPath !== null
+      ? filesystemEnvironment.browse({
+          environmentId: target.environmentId,
+          input: {
+            partialPath: target.directoryPath,
+            includeFiles: true,
+            ...(target.cwd === null ? {} : { cwd: target.cwd }),
+          },
+        })
+      : null,
+  );
+  return {
+    entries: result.data?.entries ?? EMPTY_BROWSE_ENTRIES,
+    isPending: hasTarget && (fileAccess.isPending || result.isPending),
+  };
 }
 
 interface ProjectContentSearchTarget {

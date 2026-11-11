@@ -25,6 +25,10 @@ import type { ComposerTrigger } from "../../composer-logic";
 import type { DraftId } from "../../composerDraftStore";
 import { basenameOfPath } from "../../pierre-icons";
 import {
+  getComposerPathBrowse,
+  getComposerPathBrowseEntries,
+} from "@t3tools/client-runtime/state/filesystem";
+import {
   getProviderSkillsForSlashMenu,
   getProviderSlashCommandsForSlashMenu,
 } from "@t3tools/client-runtime/providerSkills";
@@ -38,7 +42,12 @@ import {
   type EnvironmentQueryTarget,
 } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
-import { useComposerPathSearch, useDebouncedValue, useThreadSearch } from "~/state/queries";
+import {
+  useComposerPathBrowse,
+  useComposerPathSearch,
+  useDebouncedValue,
+  useThreadSearch,
+} from "~/state/queries";
 import {
   matchesPullRequestQuery,
   rankPullRequestMatches,
@@ -54,6 +63,7 @@ import {
 
 const COMPOSER_PULL_REQUEST_LIST_LIMIT = 99;
 const COMPOSER_PULL_REQUEST_RESULT_LIMIT = 12;
+const COMPOSER_PATH_BROWSE_RESULT_LIMIT = 200;
 const EMPTY_PULL_REQUEST_LIST_TARGETS: ReadonlyArray<EnvironmentQueryTarget<PullRequestListInput>> =
   [];
 
@@ -129,10 +139,16 @@ export function useComposerMenuItems({
     ...identity,
     machine: environmentMachines.get(identity.environmentId) ?? ("server" as const),
   }));
+  const pathBrowse = isPathTrigger ? getComposerPathBrowse(pathTriggerQuery) : null;
   const workspaceEntries = useComposerPathSearch({
     environmentId,
     cwd: isPathTrigger ? gitCwd : null,
-    query: isPathTrigger ? pathTriggerQuery : null,
+    query: isPathTrigger && pathBrowse === null ? pathTriggerQuery : null,
+  });
+  const browsedEntries = useComposerPathBrowse({
+    environmentId,
+    cwd: gitCwd,
+    directoryPath: pathBrowse?.directoryPath ?? null,
   });
 
   const pullRequestListTargets =
@@ -195,6 +211,27 @@ export function useComposerMenuItems({
 
   const items = ((): ComposerCommandItem[] => {
     if (!composerTrigger) return [];
+    if (composerTrigger.kind === "path" && pathBrowse !== null) {
+      const searchTarget = { environmentId, cwd: gitCwd, query: composerTrigger.query.trim() };
+      const description = pathBrowse.directoryPath.replace(/(.)[\\/]$/, "$1");
+      return getComposerPathBrowseEntries(browsedEntries.entries, pathBrowse.filterQuery)
+        .slice(0, COMPOSER_PATH_BROWSE_RESULT_LIMIT)
+        .map((entry) => {
+          const pathKind = entry.kind ?? "directory";
+          return {
+            id: `path:${pathKind}:${entry.fullPath}`,
+            type: "path" as const,
+            path: entry.fullPath,
+            pathKind,
+            searchTarget,
+            ...(pathKind === "directory"
+              ? { openQuery: `${pathBrowse.directoryPath}${entry.name}/` }
+              : {}),
+            label: entry.name,
+            description,
+          };
+        });
+    }
     if (composerTrigger.kind === "path") {
       return [
         ...matchComposerThreadItems({
@@ -384,7 +421,10 @@ export function useComposerMenuItems({
     return [];
   })();
   const isLoading =
-    (composerTriggerKind === "path" && pathTriggerQuery.length > 0 && workspaceEntries.isPending) ||
+    (composerTriggerKind === "path" &&
+      (pathBrowse === null
+        ? pathTriggerQuery.length > 0 && workspaceEntries.isPending
+        : browsedEntries.isPending)) ||
     ((composerTriggerKind === "skill" || composerTriggerKind === "slash-command") &&
       workspaceSkillsScanning) ||
     (composerTriggerKind === "pull-request" &&
