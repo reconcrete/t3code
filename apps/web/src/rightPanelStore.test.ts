@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { useClosedViewStore } from "./closedViewStore";
 import { reopenClosedView } from "./reopenClosedView";
+import { DEFAULT_OPEN_MAXIMIZED, setOpenMaximizedSurfaces } from "./rightPanelOpenMaximized";
 import {
   hostRightPanel,
   migratePersistedRightPanelState,
@@ -486,6 +487,36 @@ describe("rightPanelStore", () => {
 
     expect(store.openProactive(refA, completedDiff, revision)).toBe(true);
     expect(selectActiveRightPanel(useRightPanelStore.getState().byThreadKey, refA)).toBe("diff");
+  });
+
+  it("sizes the panel for the surface a user opens, but not for a tab switch", () => {
+    const store = useRightPanelStore.getState();
+    const maximized = () =>
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).maximized ===
+      true;
+    store.open(refA, "diff");
+    expect(maximized()).toBe(true);
+    store.openTerminal(refA, "term-1");
+    expect(maximized()).toBe(false);
+    store.activateSurface(refA, "diff");
+    expect(maximized()).toBe(false);
+    store.setMaximized(refA, true);
+    store.open(refA, "diff");
+    store.openPullRequest(refA, { projectId: "p", repository: "o/r", number: 1 });
+    expect(maximized()).toBe(true);
+    store.setMaximized(refA, false);
+    store.openPullRequest(refA, { projectId: "p", repository: "o/r", number: 1, url: "u" });
+    expect(maximized()).toBe(false);
+
+    setOpenMaximizedSurfaces(["terminal"]);
+    try {
+      store.openTerminal(refA, "term-1");
+      expect(maximized()).toBe(true);
+      store.open(refA, "diff");
+      expect(maximized()).toBe(false);
+    } finally {
+      setOpenMaximizedSurfaces(DEFAULT_OPEN_MAXIMIZED);
+    }
   });
 
   it("keeps a maximized panel per thread without counting it as a manual choice", () => {

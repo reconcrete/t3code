@@ -85,6 +85,7 @@ import { DraftInput } from "../ui/draft-input";
 import { Input } from "../ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
+import { RightPanelOpenMaximizedSection } from "./RightPanelOpenMaximizedSettings";
 import { ScopedSwitch } from "./ScopedSwitch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -1311,6 +1312,8 @@ export function ChatSettingsPanel() {
       <SettingsSection id="activity" title="Activity">
         <ToolCallVisibilityRow />
       </SettingsSection>
+
+      <RightPanelOpenMaximizedSection />
 
       <SettingsSection id="screen-reader" title="Screen reader">
         <ScreenReaderAnnouncementsRow />

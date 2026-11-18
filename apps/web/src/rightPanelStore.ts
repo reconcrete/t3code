@@ -9,6 +9,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { useClosedViewStore } from "./closedViewStore";
 import { resolveStorage } from "./lib/storage";
+import { surfaceOpensMaximized } from "./rightPanelOpenMaximized";
 import type { ThreadPanelPresentation } from "./rightPanelLayout";
 import type { ChatFileAttachment } from "./types";
 
@@ -471,6 +472,25 @@ const activated = (current: ThreadRightPanelState, surfaceId: string): ThreadRig
     ? { ...current, isOpen: true, activeSurfaceId: surfaceId }
     : current;
 
+/** A user action that brings another surface to the front sizes the panel for that surface. */
+const openAction = (
+  state: RightPanelStoreState,
+  guestKey: string,
+  updater: (current: ThreadRightPanelState) => ThreadRightPanelState,
+): Partial<RightPanelStoreState> =>
+  userAction(state, guestKey, (current) => {
+    const next = updater(current);
+    if (!next.isOpen || (current.isOpen && next.activeSurfaceId === current.activeSurfaceId)) {
+      return next;
+    }
+    const active = next.surfaces.find((surface) => surface.id === next.activeSurfaceId);
+    if (active === undefined) return next;
+    const maximized = surfaceOpensMaximized(active.kind);
+    if ((next.maximized ?? false) === maximized) return next;
+    const { maximized: _maximized, ...rest } = next;
+    return maximized ? { ...rest, maximized: true } : rest;
+  });
+
 const closeAction = (
   state: RightPanelStoreState,
   threadKey: string,
@@ -702,7 +722,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
       },
       open: (ref, kind) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             if (kind === "preview") {
               const existing = current.surfaces.find((surface) => surface.kind === "preview");
               return upsertSurface(current, existing ?? browserSurface(null));
@@ -712,7 +732,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openDevice: (ref, target, automatic = false) =>
         set((state) =>
-          (automatic ? automaticUpdate : userAction)(state, scopedThreadKey(ref), (current) => {
+          (automatic ? automaticUpdate : openAction)(state, scopedThreadKey(ref), (current) => {
             const id =
               `device:${encodeURIComponent(target.hostId)}:${encodeURIComponent(target.deviceId)}` as const;
             if (automatic && current.dismissedDeviceSurfaceIds?.includes(id)) return current;
@@ -735,7 +755,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openSideChat: (ref, threadId) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) =>
+          openAction(state, scopedThreadKey(ref), (current) =>
             upsertSurface(current, { id: `side-chat:${threadId}`, kind: "side-chat", threadId }),
           ),
         ),
@@ -752,7 +772,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openBrowser: (ref, tabId) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             const surface = browserSurface(tabId);
             const withoutPlaceholder = tabId
               ? current.surfaces.filter((entry) => entry.id !== "browser:new")
@@ -762,7 +782,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openPullRequest: (ref, target) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             const surface = pullRequestSurface(target);
             const next = upsertSurface(current, surface);
             const { url, revealUrl } = target;
@@ -811,7 +831,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         }),
       openFile: (ref, requestedPath, line) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             if (requestedPath === ".") {
               return upsertSurface(current, singletonSurface("files"));
             }
@@ -872,7 +892,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openAttachment: (ref, attachment) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             const withoutStandaloneExplorer = current.surfaces.filter(
               (surface) => surface.kind !== "files",
             );
@@ -884,7 +904,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openTerminal: (ref, terminalId) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) =>
+          openAction(state, scopedThreadKey(ref), (current) =>
             upsertSurface(current, terminalSurface(terminalId)),
           ),
         ),
@@ -1095,7 +1115,7 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       show: (ref) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) =>
+          openAction(state, scopedThreadKey(ref), (current) =>
             current.isOpen ? current : { ...current, isOpen: true },
           ),
         ),
@@ -1115,14 +1135,14 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       toggleVisibility: (ref) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => ({
+          openAction(state, scopedThreadKey(ref), (current) => ({
             ...current,
             isOpen: !current.isOpen,
           })),
         ),
       toggle: (ref, kind) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) => {
+          openAction(state, scopedThreadKey(ref), (current) => {
             const active = current.surfaces.find(
               (surface) => surface.id === current.activeSurfaceId,
             );

@@ -3306,6 +3306,7 @@ export default function ChatView(props: ChatViewProps) {
     />
   );
   const threadPanelHeaderControl = <ThreadPanelHeaderControl {...panelToggleControlProps} />;
+  const maximizeShortcutLabel = shortcutLabelForCommand(keybindings, "rightPanel.toggleMaximized");
   const panelLayoutControls = (
     <WorkspaceTitlebarControls
       showMaximizeControl={!shouldUsePlanSidebarSheet}
@@ -3313,6 +3314,7 @@ export default function ChatView(props: ChatViewProps) {
       animationsActive={panelAnimationsActive}
       maximized={rightPanelMaximized}
       onToggleMaximized={toggleRightPanelMaximizedStable}
+      maximizeShortcutLabel={maximizeShortcutLabel}
     >
       {panelToggleControls}
     </WorkspaceTitlebarControls>
@@ -4005,6 +4007,7 @@ export default function ChatView(props: ChatViewProps) {
                 <RightPanelMaximizeControl
                   maximized={rightPanelMaximized}
                   onToggle={toggleRightPanelMaximizedStable}
+                  shortcutLabel={maximizeShortcutLabel}
                 />
                 {panelToggleControls}
               </div>

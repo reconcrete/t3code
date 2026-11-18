@@ -89,3 +89,22 @@ Commit: `feat(web): browse @ mentions outside the project`
   `WorkspaceEntries.test.ts`, and the pasted-path rows in
   `ComposerPromptEditorTiptap.input.browser.test.tsx`, then type `@~/`, Tab into a folder,
   and Enter on a file.
+
+## Right panel opens maximized per surface
+
+Commit: `feat(web): open diff and pull request panels maximized`
+
+- When a user action brings a different surface to the front of the right panel (or opens
+  the panel), the panel takes that surface's size: maximized for the surfaces chosen in
+  Settings > Chat > Open maximized (Diff and Pull request by default), normal for the
+  rest. Clicking an existing tab or re-opening the active surface keeps the current size,
+  and agent or automatic opens never change it.
+- The rule is `openAction` in `rightPanelStore.ts`, used by the `open*`, `toggle`, `show`
+  and `toggleVisibility` actions. Conflicts land there when upstream adds or renames
+  open actions: route new user-initiated opens through `openAction`.
+- `rightPanel.toggleMaximized` (an upstream command) gets the default `mod+alt+shift+b`
+  in `DEFAULT_KEYBINDINGS`, shown in the maximize button's tooltip.
+- Stored in localStorage (`t3code:right-panel:open-maximized`), nothing on the server.
+- Check: the "sizes the panel for the surface a user opens" case in
+  `rightPanelStore.test.ts`, then open Diff (maximized), add Files (normal), and toggle
+  with the shortcut.

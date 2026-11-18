@@ -757,6 +757,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["command menu dollar $ slash /"],
   },
   {
+    id: "right-panel-open-maximized",
+    title: msg("Open maximized"),
+    to: "/settings/chat",
+    searchTerms: ["right side panel maximize maximized full width diff pull request surface open"],
+  },
+  {
     id: "composer-rich-text",
     title: "Rich text composer",
     to: "/settings/chat",
